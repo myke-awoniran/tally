@@ -36,7 +36,6 @@ export async function mainLoop() {
     showMenu();
     while (true) {
         const choice = await ask('> ');
-
         try {
             switch (choice.trim()) {
                 case '1':
