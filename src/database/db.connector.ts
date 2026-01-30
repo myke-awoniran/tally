@@ -4,7 +4,7 @@ import {Logger} from '../helpers';
 
 export async function connectMongoDb() {
     try {
-        mongoose.connect(config.mongodb.uri);
+        await mongoose.connect(config.mongodb.uri);
         mongoose.connection.on('connected', () => {
             Logger.Info('Mongo Connection Established');
         });

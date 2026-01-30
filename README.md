@@ -96,9 +96,7 @@ src/
 │ ├── deposit.model.ts
 │ └── withdrawal.model.ts
 ├── services/
-│ ├── ledger.service.ts
-│ ├── deposit.service.ts
-│ └── withdrawal.service.ts
+│ └── withdrawal.interface.ts
 ├── routes/
 │ ├── deposit.route.ts
 │ └── withdrawal.route.ts
@@ -158,3 +156,4 @@ Install: bun install
 Start Mongo: docker compose up -d
 
 Run Server: bun dev
+Tally REPL: bun run tally
