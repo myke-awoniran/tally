@@ -41,6 +41,7 @@ export class LedgerEngine {
 
             const from = await UserAssetDb.findOne({
                 user: params.fromAccount,
+                asset: validAsset.id
             });
 
             if (!from) {
@@ -55,6 +56,7 @@ export class LedgerEngine {
 
             const to = await UserAssetDb.findOne({
                 user: params.toAccount,
+                asset: validAsset.id
             });
 
             if (!to) {
@@ -76,7 +78,7 @@ export class LedgerEngine {
                     fee: 0,
                     totalAmount: params.amount,
                     clerkType: ClerkType.DEBIT,
-                    type: TransactionType.WITHDRAWAL,
+                    type: params.transferType,
                     description: params.metadata?.description || 'p2p transfer',
                 })
 
@@ -104,32 +106,29 @@ export class LedgerEngine {
                 const fromNext = from.availableBalance - params.amount;
                 const toNext = to.availableBalance + params.amount;
 
+                const toLedger = new LedgerDb({
+                    asset: to._id,
+                    user: to.user,
+                    transaction: txn.id,
+                    availableDelta: params.amount,
+                    availableBalance: toNext,
+                    metadata: params.metadata
+                })
+                const fromLedger = new LedgerDb({
+                    asset: from._id,
+                    user: from.user,
+                    transaction: txn.id,
+                    availableDelta: -params.amount,
+                    availableBalance: fromNext,
+                    metadata: params.metadata
+                })
 
-                const ledgerEntries = new LedgerDb(
-                    [
-                        {
-                            asset: from._id,
-                            user: from.user,
-                            transaction: txn.id,
-                            availableDelta: -params.amount,
-                            availableBalance: fromNext,
-                            metadata: params.metadata
-                        },
-                        {
-                            asset: to._id,
-                            user: to.user,
-                            transaction: txn.id,
-                            availableDelta: params.amount,
-                            availableBalance: toNext,
-                            metadata: params.metadata
-                        }
-                    ],
-                );
                 // do not use promise.all
                 await txn.save({session});
                 await withdrawalTxn.save({session});
                 await depositTxn.save({session});
-                await ledgerEntries.save({session});
+                await toLedger.save({session});
+                await fromLedger.save({session});
 
                 await UserAssetDb.updateOne(
                     {_id: from.id},
@@ -148,15 +147,14 @@ export class LedgerEngine {
         }
     }
 
-
     static async replay() {
         const ledgers: Ledger[] = await LedgerDb.find().sort({createdAt: 1});
 
         const balances = new Map<string, number>();
 
         for (const l of ledgers) {
-            const prev = balances.get(l.user) ?? 0;
-            balances.set(l.user, prev + l.availableDelta);
+            const prev = balances.get(l.asset) ?? 0;
+            balances.set(l.asset, prev + l.availableDelta);
         }
 
         for (const [assetId, balance] of balances.entries()) {
@@ -169,19 +167,14 @@ export class LedgerEngine {
         return balances;
     }
 
-
     static async auditAccount(accountId: string) {
         return LedgerDb.find({asset: accountId}).sort({createdAt: 1});
     }
-
 
     static async auditTransaction(transactionId: string) {
         return LedgerDb.find({transaction: transactionId}).sort({createdAt: 1});
     }
 
-    /**
-     * Global invariant validation.
-     */
     static async validateLedger() {
         const agg = await LedgerDb.aggregate([
             {
@@ -201,16 +194,14 @@ export class LedgerEngine {
         return true;
     }
 
-
     static async withdraw(params: {
-        userAccount: string;
-        systemAccount: string;
+        senderAccountId: string;
+        receiverAccountId: string;
         amount: number;
-        transactionId: string;
     }) {
         return this.transfer({
-            fromAccount: params.userAccount,
-            toAccount: params.systemAccount,
+            fromAccount: params.senderAccountId,
+            toAccount: params.receiverAccountId,
             amount: params.amount,
             assetType: AssetType.POUND,
             transferType: TransactionType.WITHDRAWAL,
