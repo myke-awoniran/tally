@@ -6,7 +6,10 @@
     "dev": "bun run --watch src/index.ts"
   },
   "dependencies": {
-    "elysia": "latest"
+    "chalk": "^5.6.2",
+    "elysia": "latest",
+    "log4js": "^6.9.1",
+    "mongoose": "^9.1.5"
   },
   "devDependencies": {
     "bun-types": "latest"
