@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import {config} from '../config';
-import {Logger} from '../helpers/Logger';
+import {Logger} from '../helpers';
 
 export async function connectMongoDb() {
     try {

@@ -7,6 +7,7 @@ export const config = {
             ledgers: 'ledgers',
             deposits: 'deposits',
             withdrawals: 'withdrawals',
+            users: 'users'
         }
     },
     port: process.env.PORT as unknown as number,

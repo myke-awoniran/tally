@@ -4,6 +4,7 @@ export enum ActivityStatus {
 }
 
 export interface Asset {
+    _id?: string;
     id: string;
     symbol: string;
     assetType: string;
