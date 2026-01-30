@@ -3,7 +3,21 @@ import {config} from '../../config';
 import {v4 as uuidv4} from 'uuid';
 import {ClerkType, TransactionType} from '../../interfaces';
 
-const LedgerSchema = new mongoose.Schema({
+export interface Ledger {
+    id: string;
+    _id: string;
+    asset: string;
+    clerkType: ClerkType;
+    entryType: TransactionType;
+    user: string;
+    transaction: string;
+    availableBalance: number;
+    availableDelta: number;
+    pendingBalance: number;
+    pendingDelta: number;
+}
+
+const LedgerSchema = new mongoose.Schema<Ledger>({
     _id: {
         type: String, default: function genUUID() {
             return uuidv4();
@@ -82,5 +96,5 @@ const LedgerSchema = new mongoose.Schema({
     versionKey: false
 });
 
-export const LedgerDb = mongoose.model(config.mongodb.collections.ledgers, LedgerSchema);
+export const LedgerDb = mongoose.model<Ledger>(config.mongodb.collections.ledgers, LedgerSchema);
 

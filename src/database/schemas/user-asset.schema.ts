@@ -1,30 +1,29 @@
 import mongoose from 'mongoose';
 import {config} from '../../config';
-import {ActivityStatus, AssetSymbol, AssetType, Asset} from '../../interfaces';
+import {ActivityStatus, UserAsset} from '../../interfaces';
 import {v4 as uuidv4} from 'uuid';
 
 const Schema = mongoose.Schema;
 
-const AssetSchema = new Schema<Asset>({
+const UserAssetSchema = new Schema<UserAsset>({
     _id: {
         type: String,
         default: function genUUID() {
             return uuidv4();
         }
     },
-    assetType: {
+
+    asset: {
         type: String,
-        enum: Object.values(AssetType),
-        default: AssetType.POUND,
-        unique: true,
+        ref: config.mongodb.collections.assets,
         required: true
     },
 
-    symbol: {
+    user: {
+        index: true,
         type: String,
-        required: true,
-        unique: true,
-        enum: Object.values(AssetSymbol)
+        ref: config.mongodb.collections.users,
+        required: true
     },
 
     withdrawalActivity: {
@@ -32,6 +31,24 @@ const AssetSchema = new Schema<Asset>({
         enum: Object.values(ActivityStatus),
         default: ActivityStatus.ACTIVE
     },
+
+    availableBalance: {
+        type: Number,
+        required: true,
+        default: 0.0
+    },
+
+    pendingBalance: {
+        type: Number,
+        required: true,
+        default: 0.0
+    },
+
+    depositActivity: {
+        type: String,
+        enum: Object.values(ActivityStatus),
+        default: ActivityStatus.ACTIVE
+    }
 }, {
     toObject: {
         transform(doc, ret) {
@@ -51,5 +68,5 @@ const AssetSchema = new Schema<Asset>({
     timestamps: true
 });
 
-AssetSchema.index({symbol: 1, assetType: 1}, {unique: true});
-export const AssetDb = mongoose.model<Asset>(config.mongodb.collections.assets, AssetSchema);
+UserAssetSchema.index({user: 1, symbol: 1}, {unique: true});
+export const UserAssetDb = mongoose.model<UserAsset>(config.mongodb.collections.userAssets, UserAssetSchema);

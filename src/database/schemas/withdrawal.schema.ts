@@ -59,7 +59,9 @@ const WithdrawalSchema = new Schema(
         },
 
         destination: {
-            type: String
+            type: String,
+            required: true,
+            references: config.mongodb.collections.users,
         },
 
         metadata: {

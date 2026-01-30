@@ -26,14 +26,6 @@ const TransactionSchema = new Schema<Transaction>({
         type: String,
         required: true,
         ref: config.mongodb.collections.assets,
-        default: AssetType.POUND
-    },
-
-    symbol: {
-        type: String,
-        required: true,
-        enum: Object.values(AssetSymbol),
-        default: AssetSymbol.GBP
     },
 
     status: {
