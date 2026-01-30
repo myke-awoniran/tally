@@ -202,7 +202,9 @@ export class LedgerEngine {
   }
 
   static async auditAccount(accountId: string) {
-    const entries = await LedgerDb.find({ asset: accountId }).sort({ createdAt: 1 });
+    const entries = await LedgerDb.find({ asset: accountId }).sort({
+      createdAt: 1,
+    });
     if (!entries || entries.length === 0) {
       throw new Error(`No ledger entries found for account: ${accountId}`);
     }
@@ -210,9 +212,13 @@ export class LedgerEngine {
   }
 
   static async auditTransaction(transactionId: string) {
-    const entries = await LedgerDb.find({ transaction: transactionId }).sort({ createdAt: 1 });
+    const entries = await LedgerDb.find({ transaction: transactionId }).sort({
+      createdAt: 1,
+    });
     if (!entries || entries.length === 0) {
-      throw new Error(`No ledger entries found for transaction: ${transactionId}`);
+      throw new Error(
+        `No ledger entries found for transaction: ${transactionId}`,
+      );
     }
     return entries;
   }
@@ -231,7 +237,9 @@ export class LedgerEngine {
     const availableTotal = availableAgg[0]?.total ?? 0;
 
     if (availableTotal !== 0) {
-      throw new Error(`Available balance invariant violated: ${availableTotal}`);
+      throw new Error(
+        `Available balance invariant violated: ${availableTotal}`,
+      );
     }
 
     // Validate that all pending deltas sum to zero
