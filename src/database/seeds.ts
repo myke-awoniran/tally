@@ -53,6 +53,7 @@ export async function seedDefaults() {
             withdrawalActivity: ActivityStatus.ACTIVE,
             DepositActivity: ActivityStatus.ACTIVE
         }, {upsert: true, new: true})
+        console.log(user1GbpAsset, user2GbpAsset);
     } catch (error: unknown) {
         throw error;
     }

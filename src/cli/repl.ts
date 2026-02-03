@@ -83,12 +83,11 @@ async function handleTransfer() {
     const to = await ask('Receiver user Email: ');
     const amount = await ask('Amount (Minimum of GBP 100.00): ');
 
-    await LedgerEngine['withdraw']({
+    LedgerEngine['withdraw']({
         senderAccountEmail: from.trim().toLowerCase(),
         receiverAccountEmail: to.trim().toLowerCase(),
         amount: Number(amount) * 100 // converting to pence,
-    });
-    console.log('\nTransfer completed\n');
+    }).then(r => console.log("Transaction completed", r)).catch(err => console.error(err));
 }
 
 async function handleAuditAccount() {
