@@ -152,15 +152,7 @@ Commit (or rollback on any failure).
 
 - Auditability: Every change includes a transactionId, clerkType, and a "before/after" delta snapshot.
 
-# Wanna run this project on your machine?
-
-Install: bun install
-
-start a local mongo instance: docker run -p 27017:27017 mongo
-
-Tally REPL: bun run tally
-
-## Procedural Testing
+# Procedural Testing
 
 This section walks through a manual end-to-end validation of Tally’s double-entry guarantees, replayability, and balance
 derivation.
@@ -186,20 +178,25 @@ Start the Tally REPL:
 bun run tally
 ```
 
-# Seeded test users:
+## Seeded test users:
+
 - Sender: user1@email.com
 - Receiver: user2@email.com
   (You may reverse these if desired.)
 
-# Test Scenario: Transfer 100 USD
+## Test Scenario: Transfer 100 USD
 
-``` We will transfer 100 USD from Account A to Account B and verify correctness via ledger replay.
-Step 1 — Perform Transfer
+```We will transfer 100 USD from Account A to Account B and verify correctness via ledger replay.```
+
+## Step 1 — Perform Transfer
+
+```
 Initiate a transfer of 100 USD from user1@email.com to user2@email.com.
 If successful, you should receive a confirmation message indicating the transfer completed.
 ```
 
-# At this point:
+## At this point:
+
 - A single business transaction is created.
 - A single Deposits record is created.
 - A single Withdrawals record is created.
@@ -207,26 +204,31 @@ If successful, you should receive a confirmation message indicating the transfer
 - Debit: Sender asset
 - Credit: Receiver asset
 - No asset balances are directly mutated.
-- Step 2 — Verify Asset Balances Remain Unchanged
-  Inspect both users’ Asset records.
-  You should observe:
-  availableBalance has not changed for either user.
+
+## Step 2 — Verify Asset Balances Remain Unchanged
+
+Inspect both users’ Asset records.
+You should observe:
+
+- availableBalance has not changed for either user.
   This is intentional.
   Asset balances are treated as materialized projections, not authoritative state.
 
-# All financial truth currently exists only in the ledger.
+## All financial truth currently exists only in the ledger.
 
-# Step 3 — Inspect Ledger Entries
-Query the ledger collection and confirm:
-Exactly two rows were created for the transfer.
-Both rows reference the same transaction ID.
-One entry debits Account A.
-One entry credits Account B.
-The deltas sum to zero.
-Invariant:
-Σ(credits) = Σ(debits)
+## Step 3 — Inspect Ledger Entries
+
+- Query the ledger collection and confirm:
+- Exactly two rows were created for the transfer.
+- Both rows reference the same transaction ID.
+- One entry debits Account A.
+- One entry credits Account B.
+- The deltas sum to zero.
+- Invariant:
+- Σ(credits) = Σ(debits)
 
 Expected Outcome
+
 ```This confirms:
 Ledger entries are immutable and authoritative.
 Asset balances are derived, not primary.
@@ -236,6 +238,7 @@ Transfers produce symmetric accounting entries.
 ## Step 4 — Run Ledger Replay
 
 Trigger the replay / reconciliation command.
+
 ```This process:
 Scans all ledger entries.
 Aggregates availableDelta grouped by asset.
