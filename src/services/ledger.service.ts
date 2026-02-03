@@ -132,13 +132,13 @@ export class LedgerEngine {
                 });
 
                 /**
+                 * NOTE: for the purpose of this POC, we are not updating the UserAsset balance here.
                  * We intentionally avoid mutating the Asset balance here.
                  * The ledger is the single source of truth for all financial state.
                  * This allows us to validate deterministic replay by rebuilding balances
                  * exclusively from immutable ledger entries, ensuring that projections
                  * (Asset.availableBalance) remain derivable, auditable, and never authoritative.
                  **/
-
 
                 // const user1 = await UserAssetDb.findOneAndUpdate({
                 //     user: from.user,
@@ -189,8 +189,8 @@ export class LedgerEngine {
             const key = `${l.user}:${l.asset}`;
             const prev = balances.get(key) ?? {available: 0, pending: 0};
             balances.set(key, {
-                available: Number(prev.available) + Number(l.availableBalance),
-                pending: Number(prev.pending) + Number(l.pendingBalance),
+                available: Number(prev.available) + Number(l.availableDelta),
+                pending: Number(prev.pending) + Number(l.pendingDelta),
             });
         }
 

@@ -33,6 +33,125 @@ This repository exists to demonstrate:
 
 - Financial invariants enforcement.
 
+## What This POC Does NOT Cover
+
+This project is intentionally scoped as a systems-oriented proof of concept. While it demonstrates correct double-entry
+bookkeeping, append-only ledgers, atomic writes, and deterministic replay, it does **not** attempt to solve several
+production-grade concerns.
+
+The following are explicitly out of scope:
+
+---
+
+### 1. Idempotency
+
+The system does not currently implement idempotency keys for financial commands.
+
+In production, every deposit, withdrawal, or transfer must be idempotent to prevent duplicate processing during retries,
+network failures, or client restarts.
+
+---
+
+### 2. Optimistic Locking / Concurrency Control
+
+Balance checks are performed without per-account optimistic locking or version-based compare-and-swap.
+
+This means concurrent operations on the same account could race.
+
+Production systems require:
+
+- Account versioning
+- Optimistic locking
+- Or per-account serialization
+
+to guarantee single-writer semantics.
+
+---
+
+### 3. First-Class Account Abstraction
+
+User assets implicitly act as accounts.
+
+A real ledger system should model `Account` as a first-class entity, separate from users, allowing:
+
+- Multiple accounts per user
+- Custodial accounts
+- Subaccounts
+
+This POC simplifies by collapsing these concepts.
+
+---
+
+### 4. Explicit System Accounts
+
+System balances (clearing, fees, liquidity) are not modeled as formal accounts.
+
+In production, all platform funds must live in explicit system-owned ledger accounts for auditability and
+reconciliation.
+
+---
+
+### 5. Write-Time Invariant Enforcement
+
+Double-entry invariants are validated after the fact via `validateLedger()`.
+
+In production, these invariants must be enforced inside the database transaction itself, causing automatic rollback on
+violation.
+
+---
+
+### 6. Temporal Ordering Guarantees
+
+Ledger ordering relies on timestamps.
+
+Real systems require monotonic sequence numbers to guarantee strict ordering independent of clock drift.
+
+---
+
+### 7. Typed Error Semantics
+
+Errors are surfaced as generic exceptions.
+
+Financial systems typically distinguish:
+
+- Insufficient funds
+- Concurrency conflicts
+- Invariant violations
+- Suspended accounts
+- Idempotency collisions
+- Bad Request
+- Service Unavailable etc.
+
+This POC keeps error handling minimal.
+
+---
+
+### 8. Snapshots / Projection Strategy
+
+Balances are rebuilt via full ledger replay.
+
+Production systems introduce snapshotting and incremental projectors to avoid replaying the entire journal on every
+rebuild.
+
+---
+
+### 9. Transfer as First-Class Primitive
+
+Transfers are modeled using deposit + withdrawal semantics.
+
+A real ledger would represent transfers as a single transaction producing symmetric debit/credit entries directly.
+
+---
+
+### FINAL NOTE TO PEOPLE READING THIS
+
+This POC focuses on demonstrating:
+
+It intentionally omits several production concerns in order to keep the core architecture visible and minimal.
+
+These omissions are design choices, not oversights.
+
+
 > Specifically:
 
 - Every transaction produces at least two ledger entries.
@@ -75,8 +194,11 @@ fee, clerkType, and status, but they do not mutate balances directly.
   Every operation produces symmetric entries to ensure the invariant:
 
 ∑credits=∑debits
+
 Scenario Account Delta
+
 Deposit (100 USD)   User Asset +100
+
 System Clearing -100
 
 Withdrawal (50 USD)    User Asset -50
