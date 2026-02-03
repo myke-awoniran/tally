@@ -15,6 +15,7 @@ export interface Asset {
 export interface UserAsset {
     _id?: string;
     id: string;
+    email:string;
     asset: string; // system generated Asset ID for this user asset
     user: string;
     availableBalance: number;

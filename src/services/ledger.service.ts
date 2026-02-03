@@ -52,10 +52,10 @@ export class LedgerEngine {
         throw new Error("Service not available. Please try again later.");
       }
 
-      const from = await UserAssetDb.findOne({
-        user: params.fromAccount,
-        asset: validAsset.id,
-      });
+            const from = await UserAssetDb.findOne({
+                email: params.fromAccount,
+                asset: validAsset.id
+            });
 
       if (!from) {
         throw new Error("Invalid user account");
@@ -69,10 +69,10 @@ export class LedgerEngine {
         throw new Error("Insufficient balance");
       }
 
-      const to = await UserAssetDb.findOne({
-        user: params.toAccount,
-        asset: validAsset.id,
-      });
+            const to = await UserAssetDb.findOne({
+                email: params.toAccount,
+                asset: validAsset.id
+            });
 
       if (!to) {
         throw new Error("Invalid user account");
@@ -84,40 +84,41 @@ export class LedgerEngine {
 
       const session = await mongoose.startSession();
 
-      await session.withTransaction(async () => {
-        const txn = new TransactionDb({
-          reference: `myke_poc${uuidv4()}`,
-          user: params.fromAccount,
-          asset: validAsset.id,
-          status: TransactionStatus.SUCCESS, // since it's same system, no waiting for webhook
-          amount: params.amount,
-          fee: 0,
-          totalAmount: params.amount,
-          clerkType: ClerkType.DEBIT,
-          type: params.transferType,
-          description: params.metadata?.description || "p2p transfer",
-        });
+            await session.withTransaction(async () => {
+                const txn = new TransactionDb({
+                    reference: `myke_poc${uuidv4()}`,
+                    user: from.user,
+                    asset: validAsset.id,
+                    status: TransactionStatus.SUCCESS, // since it's same system, no waiting for webhook
+                    amount: params.amount,
+                    fee: 0,
+                    reason: params.metadata?.reason || 'p2p transfer',
+                    totalAmount: params.amount,
+                    clerkType: ClerkType.DEBIT,
+                    type: params.transferType,
+                    description: params.metadata?.description || 'p2p transfer',
+                })
 
-        const depositTxn = new DepositDb({
-          user: params.toAccount,
-          asset: validAsset.id,
-          transaction: txn.id,
-          amount: params.amount,
-          status: TransactionStatus.SUCCESS,
-          reference: txn.reference,
-          metadata: params.metadata,
-        });
-        const withdrawalTxn = new WithdrawalDb({
-          user: params.fromAccount,
-          asset: validAsset.id,
-          transaction: txn.id,
-          amount: params.amount,
-          fee: 0,
-          status: TransactionStatus.SUCCESS,
-          reference: txn.reference,
-          destination: params.toAccount,
-          metadata: params.metadata,
-        });
+                const depositTxn = new DepositDb({
+                    user: to.user,
+                    asset: validAsset.id,
+                    transaction: txn.id,
+                    amount: params.amount,
+                    status: TransactionStatus.SUCCESS,
+                    reference: txn.reference,
+                    metadata: params.metadata
+                })
+                const withdrawalTxn = new WithdrawalDb({
+                    user: from.user,
+                    asset: validAsset.id,
+                    transaction: txn.id,
+                    amount: params.amount,
+                    fee: 0,
+                    status: TransactionStatus.SUCCESS,
+                    reference: txn.reference,
+                    destination: params.toAccount,
+                    metadata: params.metadata
+                })
 
         const fromNext = from.availableBalance - params.amount;
         const toNext = to.availableBalance + params.amount;
@@ -261,17 +262,19 @@ export class LedgerEngine {
     return true;
   }
 
-  static async withdraw(params: {
-    senderAccountId: string;
-    receiverAccountId: string;
-    amount: number;
-  }) {
-    return this.transfer({
-      fromAccount: params.senderAccountId,
-      toAccount: params.receiverAccountId,
-      amount: params.amount,
-      assetType: AssetType.POUND,
-      transferType: TransactionType.WITHDRAWAL,
-    });
-  }
+    static async withdraw(params: {
+        senderAccountEmail: string;
+        receiverAccountEmail: string;
+        amount: number;
+    }) {
+        return this.transfer({
+            fromAccount: params.senderAccountEmail,
+            toAccount: params.receiverAccountEmail,
+            amount: params.amount,
+            assetType: AssetType.POUND,
+            transferType: TransactionType.WITHDRAWAL,
+        });
+    }
+
+
 }

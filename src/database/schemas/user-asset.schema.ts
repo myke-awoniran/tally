@@ -26,6 +26,12 @@ const UserAssetSchema = new Schema<UserAsset>({
         required: true
     },
 
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+
     withdrawalActivity: {
         type: String,
         enum: Object.values(ActivityStatus),
@@ -68,5 +74,5 @@ const UserAssetSchema = new Schema<UserAsset>({
     timestamps: true
 });
 
-UserAssetSchema.index({user: 1, symbol: 1}, {unique: true});
+UserAssetSchema.index({user: 1, symbol: 1, email: 1}, {unique: true});
 export const UserAssetDb = mongoose.model<UserAsset>(config.mongodb.collections.userAssets, UserAssetSchema);

@@ -1,8 +1,10 @@
 import readline from 'readline';
 import {LedgerEngine} from '../services/ledger.service';
-import {connectMongoDb} from "../database";
+import {connectMongoDb, seedDefaults} from "../database";
+import {Logger} from "../helpers";
 
 await connectMongoDb();
+await seedDefaults();
 console.log('\nWelcome to Tally Ledger Console\n');
 
 const rl = readline.createInterface({
@@ -77,14 +79,14 @@ export async function mainLoop() {
 // ---------------- Handlers ----------------
 
 async function handleTransfer() {
-    const from = await ask('Sender user ID: ');
-    const to = await ask('Receiver user ID: ');
+    const from = await ask('Sender user Email: ');
+    const to = await ask('Receiver user Email: ');
     const amount = await ask('Amount (Minimum of GBP 100.00): ');
 
     await LedgerEngine['withdraw']({
-        senderAccountId: from.trim(),
-        receiverAccountId: to.trim(),
-        amount: Number(amount),
+        senderAccountEmail: from.trim().toLowerCase(),
+        receiverAccountEmail: to.trim().toLowerCase(),
+        amount: Number(amount) * 100 // converting to pence,
     });
     console.log('\nTransfer completed\n');
 }
