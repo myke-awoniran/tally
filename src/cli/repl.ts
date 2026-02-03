@@ -18,7 +18,8 @@ function showMenu() {
         TALLY MENU
 ==============================
 
-1) Help
+0) Help
+1) Check Balance
 2) Transfer
 3) Audit Account
 4) Audit Transaction
@@ -40,8 +41,11 @@ export async function mainLoop() {
         const choice = await ask('> ');
         try {
             switch (choice.trim()) {
-                case '1':
+                case '0':
                     printHelp();
+                    break;
+                case '1':
+                    await checkBalance();
                     break;
 
                 case '2':
@@ -106,7 +110,13 @@ async function handleAuditAccount() {
 async function handleAuditTransaction() {
     const tx = await ask('Transaction ID: ');
     const rows = await LedgerEngine.auditTransaction(tx.trim());
-    console.table(rows);
+    console.table([...rows]);
+}
+
+async function checkBalance() {
+    const email = await ask('Enter account email address: ');
+    const balance = await LedgerEngine.checkBalance(email.toLowerCase())
+    console.table([{LedgerBalance: balance?.availableBalance, pendingBalance: balance?.pendingBalance}]);
 }
 
 async function handleReplay() {

@@ -1,21 +1,6 @@
 import mongoose from "mongoose";
-import {
-    TransactionDb,
-    User,
-    AssetDb,
-    LedgerDb,
-    UserAssetDb,
-    DepositDb,
-    WithdrawalDb,
-    Ledger,
-} from "../database";
-import {
-    ActivityStatus,
-    AssetType,
-    ClerkType,
-    TransactionStatus,
-    TransactionType,
-} from "../interfaces";
+import {AssetDb, DepositDb, Ledger, LedgerDb, TransactionDb, UserAssetDb, WithdrawalDb,} from "../database";
+import {ActivityStatus, AssetType, ClerkType, TransactionStatus, TransactionType,} from "../interfaces";
 import {v4 as uuidv4} from "uuid";
 
 interface TransferParams {
@@ -81,7 +66,6 @@ export class LedgerEngine {
                     `Receiver account cannot receive ${validAsset.symbol} deposit activity at this moment.`,
                 );
             }
-            // console.log(await UserAssetDb.find());
 
             const session = await mongoose.startSession();
 
@@ -147,19 +131,29 @@ export class LedgerEngine {
                     pendingBalance: from.pendingBalance,
                 });
 
-                const user1 = await UserAssetDb.findOneAndUpdate({
-                    user: from.user,
+                /**
+                 * We intentionally avoid mutating the Asset balance here.
+                 * The ledger is the single source of truth for all financial state.
+                 * This allows us to validate deterministic replay by rebuilding balances
+                 * exclusively from immutable ledger entries, ensuring that projections
+                 * (Asset.availableBalance) remain derivable, auditable, and never authoritative.
+                 **/
 
-                }, {
-                    availableBalance: fromNext,
 
-                }, {new: true, session});
+                // const user1 = await UserAssetDb.findOneAndUpdate({
+                //     user: from.user,
+                //
+                // }, {
+                //     availableBalance: fromNext,
+                //
+                // }, {new: true, session});
+                //
+                // const user2 = await UserAssetDb.findOneAndUpdate({
+                //     user: to.user,
+                // }, {
+                //     availableBalance: toNext,
+                // }, {new: true, session})
 
-                const user2 = await UserAssetDb.findOneAndUpdate({
-                    user: to.user,
-                }, {
-                    availableBalance: toNext,
-                }, {new: true, session})
                 // do not use promise.all
                 await txn.save({session});
                 await withdrawalTxn.save({session});
@@ -176,6 +170,15 @@ export class LedgerEngine {
         }
     }
 
+    static async checkBalance(email: string) {
+        const userAsset = UserAssetDb.findOne({email});
+        if (!userAsset) {
+            throw new Error("Account not found. Please check your email address and try again.");
+        }
+        return userAsset;
+
+    }
+
     static async replay() {
         const ledgers: Ledger[] = await LedgerDb.find().sort({createdAt: 1});
 
@@ -186,21 +189,21 @@ export class LedgerEngine {
             const key = `${l.user}:${l.asset}`;
             const prev = balances.get(key) ?? {available: 0, pending: 0};
             balances.set(key, {
-                available: Number(prev.available) + Number(l.availableDelta),
-                pending: Number(prev.pending) + Number(l.pendingDelta),
+                available: Number(prev.available) + Number(l.availableBalance),
+                pending: Number(prev.pending) + Number(l.pendingBalance),
             });
         }
 
         // Update each user asset with their final balance
         for (const [key, balance] of balances.entries()) {
             const [userId, assetId] = key.split(":");
+            console.log(userId, assetId, balance);
             await UserAssetDb.updateOne(
                 {user: userId, asset: assetId},
                 {
-                    $set: {
-                        availableBalance: Number(balance.available),
-                        pendingBalance: Number(balance.pending),
-                    },
+                    availableBalance: Number(balance.available),
+                    pendingBalance: balance.pending ? Number(balance.pending) : 0,
+
                 },
             );
         }
@@ -227,6 +230,7 @@ export class LedgerEngine {
                 `No ledger entries found for transaction: ${transactionId}`,
             );
         }
+        console.log(entries);
         return entries;
     }
 

@@ -127,6 +127,7 @@ const DepositSchema = new Schema({
 ```
 
 # Ledger Engine
+
 The centralized ledger.service.ts manages the following workflow within MongoDB sessions:
 
 Validate sufficient balance.
@@ -141,7 +142,8 @@ Update materialized balances in the Asset model.
 
 Commit (or rollback on any failure).
 
-# Guarantees: 
+# Guarantees:
+
 - Atomicity: MongoDB sessions ensure no partial writes or "ghost" balances.
 
 - Immutability: Ledger entries are never updated, only appended.
@@ -151,9 +153,120 @@ Commit (or rollback on any failure).
 - Auditability: Every change includes a transactionId, clerkType, and a "before/after" delta snapshot.
 
 # Wanna run this project on your machine?
+
 Install: bun install
 
-Start Mongo: docker compose up -d
+start a local mongo instance: docker run -p 27017:27017 mongo
 
-Run Server: bun dev
 Tally REPL: bun run tally
+
+## Procedural Testing
+
+This section walks through a manual end-to-end validation of Tally’s double-entry guarantees, replayability, and balance
+derivation.
+
+The goal is to prove that:
+
+- Ledger entries are the source of truth.
+- Asset balances are merely cached projections.
+- Transfers generate symmetric debit/credit rows.
+- Balances can be deterministically rebuilt from the Ledgers.
+
+---
+
+### Prerequisites
+
+1. Ensure MongoDB is running locally:
+
+```bash
+docker run -p 27017:27017 mongo
+Install dependencies:
+bun install
+Start the Tally REPL:
+bun run tally
+```
+
+# Seeded test users:
+- Sender: user1@email.com
+- Receiver: user2@email.com
+  (You may reverse these if desired.)
+
+# Test Scenario: Transfer 100 USD
+
+``` We will transfer 100 USD from Account A to Account B and verify correctness via ledger replay.
+Step 1 — Perform Transfer
+Initiate a transfer of 100 USD from user1@email.com to user2@email.com.
+If successful, you should receive a confirmation message indicating the transfer completed.
+```
+
+# At this point:
+- A single business transaction is created.
+- A single Deposits record is created.
+- A single Withdrawals record is created.
+- Two symmetric ledger entries are appended:
+- Debit: Sender asset
+- Credit: Receiver asset
+- No asset balances are directly mutated.
+- Step 2 — Verify Asset Balances Remain Unchanged
+  Inspect both users’ Asset records.
+  You should observe:
+  availableBalance has not changed for either user.
+  This is intentional.
+  Asset balances are treated as materialized projections, not authoritative state.
+
+# All financial truth currently exists only in the ledger.
+
+# Step 3 — Inspect Ledger Entries
+Query the ledger collection and confirm:
+Exactly two rows were created for the transfer.
+Both rows reference the same transaction ID.
+One entry debits Account A.
+One entry credits Account B.
+The deltas sum to zero.
+Invariant:
+Σ(credits) = Σ(debits)
+
+Expected Outcome
+```This confirms:
+Ledger entries are immutable and authoritative.
+Asset balances are derived, not primary.
+Transfers produce symmetric accounting entries.
+```
+
+## Step 4 — Run Ledger Replay
+
+Trigger the replay / reconciliation command.
+```This process:
+Scans all ledger entries.
+Aggregates availableDelta grouped by asset.
+Recomputes balances deterministically.
+Updates availableBalance on each Asset.
+No business transactions are re-executed.
+Only projections are rebuilt.
+```
+
+## Step 5 — Recheck Asset Balances
+
+Re-query both users’ Asset records.
+
+```You should now see:
+Sender balance decreased by 100 USD.
+Receiver balance increased by 100 USD.
+These values must exactly match what is implied by the ledger history.
+```
+
+Expected Outcome
+
+```This confirms:
+Ledger entries are immutable and authoritative.
+Asset balances are derived, not primary.
+Transfers produce symmetric accounting entries.
+Replay correctly reconstructs state.
+No partial or inconsistent balances exist.
+If replay produces the correct balances, the system satisfies:
+Double-entry integrity
+Deterministic reconciliation
+Projection correctness
+Atomic transaction guarantees
+```
+
